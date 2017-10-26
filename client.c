@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
+char file_name[MAXDATASIZE];
 
 void *get_in_addr(struct sockaddr *sa);
 char *append_str(char *str1 , char *str2);
@@ -17,6 +18,7 @@ int port_ip_err(int argc);
 void send_msg(char* message, int sockfd);
 void close_sock(int sockfd);
 int connect_server (char* ip_addr , char* port);
+void get_filename();
 
 int main(int argc, char *argv[])
 {
@@ -128,12 +130,12 @@ int connect_server(char* ip_addr, char* PORT){
         write(STDERR_FILENO, "recv", 4);
         exit(1);
     }
-
-    buf[numbytes] = '\0';
-    char* msg = "A message from client!";
-    send(sockfd, msg, strlen(msg), 0);    
-    char* msg1 = "\nSERVER : " ;
-    char* server_msg = append_str(msg1, buf);
-    write(STDOUT_FILENO, server_msg, strlen(server_msg));
+    get_filename();
     return 0;
+}
+void get_filename(){
+ 
+  write(STDOUT_FILENO, "\nEnter the file name you wanna download :\n", 43);
+  int size = read(STDIN_FILENO, file_name, MAXDATASIZE);
+   memcpy(file_name, file_name, size);
 }

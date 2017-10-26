@@ -238,7 +238,7 @@ void stop(){
  }
 
 void on_new_connection(int indentifier){
-    char* msg = "NEW CONNECTION : ";
+    char* msg = "\nNEW CONNECTION : ";
     char tmp[5] = {0x0} ;
     write(STDOUT_FILENO, msg, strlen(msg));
     sprintf(tmp,"%4d", indentifier);
