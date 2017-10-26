@@ -128,9 +128,11 @@ int connect_server(char* ip_addr, char* PORT){
 
     if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
         write(STDERR_FILENO, "recv", 4);
-        exit(1);
+        return 1;
     }
+    write(STDOUT_FILENO, buf, numbytes);
     get_filename();
+    send_msg(file_name, sockfd);
     return 0;
 }
 void get_filename(){

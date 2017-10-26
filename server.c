@@ -15,6 +15,8 @@
 #define MAXDATASIZE 100
 #define BACKLOG 10     // how many pending connections queue will hold
 int active = 1 ;
+char file_name[MAXDATASIZE];
+
 char *append_str (char *str1 , char *str2);
 char* itoa (int i, char b[]);
 void sigchld_handler(int s);
@@ -28,8 +30,7 @@ char recv_msg(int indentifier);
 void stop ();
 void on_new_connection(int indentifier);
 void on_standard_input(char* line);
-void on_new_message (int indentifier, char* msg);
-void parse(int identifier, char* message);
+int on_new_message (int indentifier);
 
 int main(int argc, char* argv[])
 {
@@ -206,11 +207,13 @@ void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
         on_new_connection(new_fd);       
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
-            if (send(new_fd, "CONNECTION STABLISHED", 22, 0) == -1)
-                perror("send");
+            if (send(new_fd, "\n#CONNECTION STABLISHED", 22, 0) == -1)
+                write(STDERR_FILENO, "send error", 10);
+       
             close(new_fd);
             exit(0);
         }
+        on_new_message(new_fd);
         close(new_fd);  // parent doesn't need this
 
 
@@ -255,16 +258,19 @@ void on_standard_input(char* line)
     stop();
 }
 
-void on_new_message(int identifier, char* message){
-    char* temp = "NEW MESSAGE FROM";
+int on_new_message(int sockfd){
+    int numbytes;
+    char buf[MAXDATASIZE];
+    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+        perror("recv");
+        return 1;
+    }
+    memcpy(file_name, buf, numbytes);
+    char* temp = "\nNEW MESSAGE FROM";
     char id[5] = {0x0} ;
-    sprintf(id,"%4d", identifier);
+    sprintf(id,"%4d", sockfd);
     write(STDOUT_FILENO, temp, strlen(temp));
     write(STDOUT_FILENO, id, strlen(id));
-    parse(identifier, message);
-}
-
-void parse(int identifier, char* message)
-{
+    return 0;
 
 }
