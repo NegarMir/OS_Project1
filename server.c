@@ -33,17 +33,6 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-
-void sigchld_handler(int s)
-{
-    // waitpid() might overwrite errno, so we save and restore it:
-    int saved_errno = errno;
-
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-
-    errno = saved_errno;
-}
-
 char *append_str (char *str1 , char *str2){
     char * new_str ;
     if((new_str = malloc(strlen(str1)+strlen(str2)+1)) != NULL){
@@ -76,17 +65,6 @@ char* itoa(int i, char b[]){
     return b;
 }
 
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
  int parameter_err(int argc){
 
     if(argc==1){
@@ -96,53 +74,6 @@ void *get_in_addr(struct sockaddr *sa)
     }
     return 0 ;
  }
-
- int bind_err(struct addrinfo* p){
-
-    if (p == NULL)  {
-        char msg[] = "server: failed to bind\n";
-        write(STDERR_FILENO, msg, strlen(msg));
-        return 1 ;
-    }
-    return 0 ;
- }
-
- int listen_err(int sockfd){
-    if (listen(sockfd, BACKLOG) == -1) {
-        perror("listen");
-        return 1;
-    }
-    return 0;
-
- }
-
-/*void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
-
-    socklen_t sin_size;
-    while(active) {  
-        sin_size = sizeof their_addr;
-        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-        if (new_fd == -1) {
-            perror("accept");
-            continue;
-        }
-
-        inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s);
-        on_new_connection(new_fd);       
-        if (!fork()) { // this is the child process
-            close(sockfd); // child doesn't need the listener
-            if (send(new_fd, "\n#CONNECTION STABLISHED", 23, 0) == -1)
-                write(STDERR_FILENO, "send error", 10);
-       
-            close(new_fd);
-            exit(0);
-        }
-        on_new_message(new_fd);
-        close(new_fd);  // parent doesn't need this
-
-
-    }
- }*/
 
 void send_msg (int indentifier, char* msg)
  {
