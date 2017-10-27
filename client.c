@@ -8,18 +8,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "client.h"
 
 #define MAXDATASIZE 200 // max number of bytes we can get at once 
 char file_name[MAXDATASIZE];
-
-void *get_in_addr(struct sockaddr *sa);
-char *append_str(char *str1 , char *str2);
-int port_ip_err(int argc);
-void send_msg(char* message, int sockfd);
-void close_sock(int sockfd);
-int connect_server (char* ip_addr , char* port);
-void send_filename();
-
 
 int main(int argc, char *argv[])
 {
