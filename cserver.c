@@ -15,88 +15,23 @@
 
 #define MAXDATASIZE 200
 #define BACKLOG 10     // how many pending connections queue will hold
+
 int active = 1 ;
 char file_part_no[MAXDATASIZE] ;
 char file_name[MAXDATASIZE];
-char*  PORT;
-char file_name[MAXDATASIZE];
+char*  mainserver_PORT;
+//char* PORT;
 
 int main(int argc, char* argv[])
 {
-
-
     int counter, numbytes;
     int active = 0 ;
     char buf[MAXDATASIZE];
     if(parameter_err(argc)) return 0 ;
     get_filename();
     get_file_part_no();
-    connect_to_main_server();
-    PORT = argv[1] ;
-    int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
-    struct addrinfo hints, *servinfo, *p;
-    struct sockaddr_storage their_addr; // connector's address information
-    //socklen_t sin_size;
-    struct sigaction sa;
-    int yes=1;
-    char s[INET6_ADDRSTRLEN];
-    int rv;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        //char msg[] = "getaddrinfo: %s\n";
-        write(STDERR_FILENO, gai_strerror(rv),strlen(gai_strerror(rv))-1 );
-        return 1;
-    }
-
-    // loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("server : socket");
-            continue;
-        }
-
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                sizeof(int)) == -1) {
-            perror("setsockopt");
-            exit(1);
-        }
-
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("server: bind");
-            continue;
-        }
-
-        break;
-    }
-
-    freeaddrinfo(servinfo); // all done with this structure
-
-    if (bind_err(p)) return 1 ;
-    if (listen_err(sockfd)) return 1;
-
-    sa.sa_handler = sigchld_handler; // reap all dead processes
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
-    }
-    const char msg[] = "\nserver: waiting for connections...\n";
-    write(STDOUT_FILENO, msg, strlen(msg));
-
-    run(sockfd, new_fd, their_addr, s);
-    char message[MAXDATASIZE] ;
-    printf("%c",recv_msg(new_fd));
-    printf("dasdadads");
-   // strcpy(message, recv_msg(new_fd));
-    //write(STDOUT_FILENO, message, strlen(message));
+    connect_to_main_server(argv[1]);
+    run(argv[1]);
     return 0;
 }
 
@@ -164,51 +99,134 @@ void *get_in_addr(struct sockaddr *sa)
     return 0 ;
  }
 
- int bind_err(struct addrinfo* p){
+void run(char* PORT){
+int opt = 1;  
+    int master_socket , addrlen , new_socket , client_socket[30], activity, i , valread , sd;  
+    int max_sd;  
+    struct sockaddr_in address;  
+    char buffer[1025]; 
+         
+    fd_set readfds;  
+    char *message = "#CONNECTION STABLISHED\n";  
+    
+    for (i = 0; i < BACKLOG; i++)    //initialise all client_socket[] to 0 so not checked 
+    {  
+        client_socket[i] = 0;  
+    }  
+        
+    if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)  //create a master socket 
+    {  
+      write(STDERR_FILENO,"socket failed",13);  
+        exit(EXIT_FAILURE);  
+    }  
+    
+    //set master socket to allow multiple connections , 
+    //this is just a good habit, it will work without this 
+    if( setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, 
+          sizeof(opt)) < 0 )  
+    {  
+        write(STDERR_FILENO,"setsockopt",10); 
+        exit(EXIT_FAILURE);  
+    }  
+    
+    address.sin_family = AF_INET;  
+    address.sin_addr.s_addr = INADDR_ANY;  
+    int port = atoi(PORT);
+    address.sin_port = htons( port );  
+        
+    //bind the socket to localhost port 8888 
+    if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)  
+    {  
+        write(STDERR_FILENO,"bind failed",11);  
+        exit(EXIT_FAILURE);  
+    }  
+    write(STDOUT_FILENO,"\nListener on port ",18);  
+    write(STDOUT_FILENO, PORT, strlen(PORT)); 
+    write(STDOUT_FILENO,"\n",1);
+    //try to specify maximum of 3 pending connections for the master socket 
+    if (listen(master_socket, 4) < 0)  
+    {  
+        write(STDOUT_FILENO, "listen",6);  
+        exit(EXIT_FAILURE);  
+    }  
+        
+    //accept the incoming connection 
+    addrlen = sizeof(address);  
+    write(STDOUT_FILENO, "Waiting for connections ...\n", 28);  
+        
+    while(1)  
+    {  
+        FD_ZERO(&readfds);   //clear the socket set    
+        FD_SET(master_socket, &readfds);  //add master socket to set 
+        max_sd = master_socket;  
+            
+        //add child sockets to set 
+        for ( i = 0 ; i < BACKLOG ; i++)  
+        {  
+            sd = client_socket[i];  //socket descriptor 
+            if(sd > 0)  //if valid socket descriptor then add to read list 
+                FD_SET( sd , &readfds);  
+                
+            if(sd > max_sd)   //highest file descriptor number, need it for the select function 
+                max_sd = sd;  
+        }  
 
-    if (p == NULL)  {
-        char msg[] = "server: failed to bind\n";
-        write(STDERR_FILENO, msg, strlen(msg));
-        return 1 ;
-    }
-    return 0 ;
- }
-
- int listen_err(int sockfd){
-    if (listen(sockfd, BACKLOG) == -1) {
-        perror("listen");
-        return 1;
-    }
-    return 0;
-
- }
-
-void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
-
-    socklen_t sin_size;
-    while(active) {
-        sin_size = sizeof their_addr;
-        new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-        if (new_fd == -1) {
-            perror("accept");
-            continue;
-        }
-
-        inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s);
-        on_new_connection(new_fd);
-        if (!fork()) { // this is the child process
-            close(sockfd); // child doesn't need the listener
-            if (send(new_fd, "\n#CONNECTION STABLISHED", 22, 0) == -1)
-                write(STDERR_FILENO, "send error", 10);
-
-            close(new_fd);
-            exit(0);
-        }
-        on_new_message(new_fd);
-        close(new_fd);  // parent doesn't need this
-
-
-    }
+        activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL); //wait for an activity on one of the sockets 
+      
+        if ((activity < 0) && (errno!=EINTR))  
+        {
+            write(STDERR_FILENO,"select error", 12);  
+        }  
+            
+        if (FD_ISSET(master_socket, &readfds)) //If something happened on the master socket,then its an incoming connection 
+        {  
+            if ((new_socket = accept(master_socket, 
+                    (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)  
+            {  
+                write(STDOUT_FILENO,"accept err", 10);  
+                exit(EXIT_FAILURE);  
+            }  
+            
+            on_new_connection(new_socket);
+            send_msg(new_socket, message);
+               
+            //add new socket to array of sockets 
+            for (i = 0; i < BACKLOG; i++)  
+            {  
+                //if position is empty 
+                if( client_socket[i] == 0 )  
+                {  
+                    client_socket[i] = new_socket;  
+                    break;  
+                }  
+            }  
+        }  
+            
+        //else its some IO operation on some other socket
+        for (i = 0; i < BACKLOG; i++)  
+        {  
+            sd = client_socket[i];  
+                
+            if (FD_ISSET( sd , &readfds))  
+            {  
+                //Check if it was for closing , and also read the 
+                //incoming message 
+                if ((valread = read( sd , buffer, 1024)) == 0)  
+                {  
+                    on_terminated_connection(sd);  
+                    close( sd );  
+                    client_socket[i] = 0;  
+                }  
+                    
+                //HANDLE MESSAGE
+                else
+                {  
+                    on_new_message(sd, buffer);
+                }  
+            }  
+        }  
+    }  
+        
  }
 
 void send_msg (int indentifier, char* msg)
@@ -249,21 +267,23 @@ void on_standard_input(char* line)
     stop();
 }
 
-int on_new_message(int sockfd){
+void on_new_message(int sockfd,char buf[]){
     int numbytes;
-    char buf[MAXDATASIZE];
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-        perror("recv");
-        return 1;
-    }
     memcpy(file_name, buf, numbytes);
     char* temp = "\nNEW MESSAGE FROM";
     char id[5] = {0x0} ;
     sprintf(id,"%4d", sockfd);
     write(STDOUT_FILENO, temp, strlen(temp));
     write(STDOUT_FILENO, id, strlen(id));
-    return 0;
 
+}
+
+void on_terminated_connection(int sockfd){
+   char* temp = "\nTERMINATED CONNECTION : ";
+    char id[5] = {0x0} ;
+    sprintf(id,"%4d", sockfd);
+    write(STDOUT_FILENO, temp, strlen(temp));
+    write(STDOUT_FILENO, id, strlen(id));
 }
 
 void get_file_part_no(){
@@ -271,10 +291,10 @@ void get_file_part_no(){
     write(STDOUT_FILENO, "Enter the part number of the file that this server contains.\n", 61);
     int size = read(STDIN_FILENO, file_part_no, MAXDATASIZE);
     memcpy(file_part_no, file_part_no, size);
-    printf("%s",file_name);
+    file_part_no[size-1] = '\0';
 }
 
-int connect_to_main_server(){
+int connect_to_main_server(char* PORT){
 
     int sockfd, numbytes, rv;
     char buf[MAXDATASIZE], mains_PORT[MAXDATASIZE], ip_addr[MAXDATASIZE], s[INET6_ADDRSTRLEN];
@@ -339,7 +359,7 @@ int connect_to_main_server(){
         return 1;
     }
     write(STDOUT_FILENO, buf, numbytes);
-    send_file_info();
+    send_file_info(sockfd, PORT);
     return 0;
 }
 
@@ -350,18 +370,23 @@ void get_filename(){
    file_name[size-1] = '\0';
 }
 
-void send_file_info(int sockfd){
- 
- char * message = malloc(MAXDATASIZE* sizeof(char));
- strcat(message,"fileinfo,");
- printf("%s",message);
- strcat(message,"127.0.0.1");
- strcat(message,",");
- strcat(message,PORT);
- strcat(message,",");
- strcat(message,file_name);
- strcat(message,",");
- strcat(message,file_part_no);
- printf("%s",message);
+void send_file_info(int sockfd, char* PORT){
 
+      char* str1 = "fileinfo,";
+      char* str2 = ",";
+      char* IP = "127.0.0.1";
+
+      char* str3 = (char*) malloc(1 + strlen(str1)+ 
+                    strlen(file_name) + 1 + strlen(file_part_no) + 1 + strlen(IP) + 1 + strlen(PORT));
+
+      strcpy(str3, str1);
+      strcat(str3, file_name);
+      strcat(str3,str2);
+      strcat(str3,file_part_no);
+      strcat(str3, str2);
+      strcat(str3, IP);
+      strcat(str3 , str2);
+      strcat(str3, PORT);
+
+      send_msg(sockfd, str3);
 }
