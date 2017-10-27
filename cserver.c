@@ -34,6 +34,7 @@ void on_new_connection(int indentifier);
 void on_standard_input(char* line);
 int on_new_message (int indentifier);
 void get_file_part_no();
+int connect_to_main_server();
 
 int main(int argc, char* argv[])
 {
@@ -44,6 +45,7 @@ int main(int argc, char* argv[])
     char buf[MAXDATASIZE];
     if(parameter_err(argc)) return 0 ;
     get_file_part_no();    
+    connect_to_main_server();
     PORT = argv[1] ;
     int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
     struct addrinfo hints, *servinfo, *p;
@@ -100,7 +102,7 @@ int main(int argc, char* argv[])
         perror("sigaction");
         exit(1);
     }
-    const char msg[] = "server: waiting for connections...\n";
+    const char msg[] = "\nserver: waiting for connections...\n";
     write(STDOUT_FILENO, msg, strlen(msg));
 
     run(sockfd, new_fd, their_addr, s);
@@ -283,4 +285,76 @@ void get_file_part_no(){
     write(STDOUT_FILENO, "Enter the part number of the file that this server contains.\n", 61);
     int size = read(STDIN_FILENO, file_part_no, MAXDATASIZE);
     memcpy(file_part_no, file_part_no, size);
+}
+
+int connect_to_main_server(){
+
+    int sockfd, numbytes, rv;  
+    char buf[MAXDATASIZE], mains_PORT[MAXDATASIZE], ip_addr[MAXDATASIZE], s[INET6_ADDRSTRLEN];
+    char * ptr  , * ptr1 ;
+    struct addrinfo hints, *servinfo, *p;
+    write(STDOUT_FILENO, "Enter main server's ip address.\n", 32);
+    int size = read(STDIN_FILENO, ip_addr, MAXDATASIZE);
+    ip_addr[size - 1] = '\0';
+    ptr = malloc((size-1)*sizeof(char));
+    ptr = &ip_addr[0];
+    write(STDOUT_FILENO, "Enter main server's port number.\n", 33);
+    size = read(STDIN_FILENO, mains_PORT, MAXDATASIZE);
+    memcpy(mains_PORT, mains_PORT, size);
+    mains_PORT[size - 1] = '\0';
+    ptr1 = malloc((size-1)*sizeof(char));
+    ptr1 = & mains_PORT[0];
+    memcpy(ptr1,ptr1,size-1);
+
+
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((rv = getaddrinfo(ptr, ptr1, &hints, &servinfo)) != 0) {
+        write(STDERR_FILENO, "getaddrinfo err\n", 16);
+        return 1;
+    }
+
+    // loop through all the results and connect to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            write(STDERR_FILENO, "client: socket err",18 );
+            continue;
+        }
+
+        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            write(STDERR_FILENO, "client: connect", 15);
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        char msg[] =  "CLIENT: FAILED TO CONNECT\n";
+        write(STDERR_FILENO, msg, strlen(msg)-1);
+        return 2;
+    }
+
+    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),s, sizeof s);
+    char* token = "CLIENT : CONNECTING TO ";
+    char* new_msg = append_str(token,s);
+    write(STDOUT_FILENO, new_msg, strlen(new_msg));
+
+    freeaddrinfo(servinfo); // all done with this structure
+
+    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+        write(STDERR_FILENO, "recv", 4);
+        return 1;
+    }
+    write(STDOUT_FILENO, buf, numbytes);
+    return 0;
+}
+
+void get_mainserver_info(){
+
 }
