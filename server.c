@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <math.h>
 
-#define MAXDATASIZE 100
+#define MAXDATASIZE 200
 #define BACKLOG 10     // how many pending connections queue will hold
 int active = 1 ;
 char file_name[MAXDATASIZE];
@@ -31,6 +31,7 @@ void stop ();
 void on_new_connection(int indentifier);
 void on_standard_input(char* line);
 int on_new_message (int indentifier);
+void parse (char [], int sockfd);
 
 int main(int argc, char* argv[])
 {
@@ -103,9 +104,6 @@ int main(int argc, char* argv[])
     run(sockfd, new_fd, their_addr, s);
     char message[MAXDATASIZE] ;
     printf("%c",recv_msg(new_fd));
-    printf("dasdadads");
-   // strcpy(message, recv_msg(new_fd));
-    //write(STDOUT_FILENO, message, strlen(message));
     return 0;
 }
 
@@ -207,7 +205,7 @@ void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
         on_new_connection(new_fd);       
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
-            if (send(new_fd, "\n#CONNECTION STABLISHED", 22, 0) == -1)
+            if (send(new_fd, "\n#CONNECTION STABLISHED", 23, 0) == -1)
                 write(STDERR_FILENO, "send error", 10);
        
             close(new_fd);
@@ -265,12 +263,26 @@ int on_new_message(int sockfd){
         perror("recv");
         return 1;
     }
-    memcpy(file_name, buf, numbytes);
+    
     char* temp = "\nNEW MESSAGE FROM";
     char id[5] = {0x0} ;
     sprintf(id,"%4d", sockfd);
     write(STDOUT_FILENO, temp, strlen(temp));
     write(STDOUT_FILENO, id, strlen(id));
+    write(STDOUT_FILENO, ": ",2);
+    write(STDOUT_FILENO, buf, strlen(buf));
+    parse(buf, sockfd);
     return 0;
 
+}
+
+void parse(char input[],int sockfd){
+
+     char *token = strtok(input, ",");
+     if(!strcmp(token,"filename"))
+     {
+        token = strtok(NULL, ",");
+        memcpy(file_name, token ,strlen(token));
+        return;
+     }
 }

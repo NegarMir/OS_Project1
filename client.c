@@ -18,7 +18,8 @@ int port_ip_err(int argc);
 void send_msg(char* message, int sockfd);
 void close_sock(int sockfd);
 int connect_server (char* ip_addr , char* port);
-void get_filename();
+void send_filename();
+
 
 int main(int argc, char *argv[])
 {
@@ -131,13 +132,22 @@ int connect_server(char* ip_addr, char* PORT){
         return 1;
     }
     write(STDOUT_FILENO, buf, numbytes);
-    get_filename();
-    send_msg(file_name, sockfd);
+    send_filename(sockfd);
+    
+
     return 0;
 }
-void get_filename(){
+void send_filename(int sockfd){
  
   write(STDOUT_FILENO, "\nEnter the file name you wanna download :\n", 43);
   int size = read(STDIN_FILENO, file_name, MAXDATASIZE);
    file_name[size-1] = '\0';
+   char *out, *temp= "filename,";
+    if((out = (char *)malloc(strlen(temp) + strlen(file_name) + 1)) != NULL){
+        strcpy(out, temp);
+        strcat(out, file_name);
+    }
+    else
+        abort();
+    send_msg(out, sockfd);
 }

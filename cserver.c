@@ -357,6 +357,7 @@ int connect_to_main_server(){
         return 1;
     }
     write(STDOUT_FILENO, buf, numbytes);
+    send_file_info();
     return 0;
 }
 
@@ -368,6 +369,17 @@ void get_filename(){
 }
 
 void send_file_info(int sockfd){
-
+ 
+ char * message = malloc(MAXDATASIZE* sizeof(char));
+ strcat(message,"fileinfo,");
+ printf("%s",message);
+ strcat(message,"127.0.0.1");
+ strcat(message,",");
+ strcat(message,PORT);
+ strcat(message,",");
+ strcat(message,file_name);
+ strcat(message,",");
+ strcat(message,file_part_no);
+ printf("%s",message);
 
 }
