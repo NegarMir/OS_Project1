@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAXDATASIZE 200 // max number of bytes we can get at once 
 char file_name[MAXDATASIZE];
 
 void *get_in_addr(struct sockaddr *sa);
@@ -139,5 +139,5 @@ void get_filename(){
  
   write(STDOUT_FILENO, "\nEnter the file name you wanna download :\n", 43);
   int size = read(STDIN_FILENO, file_name, MAXDATASIZE);
-   memcpy(file_name, file_name, size);
+   file_name[size-1] = '\0';
 }
