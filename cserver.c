@@ -12,10 +12,11 @@
 #include <signal.h>
 #include <math.h>
 
-#define MAXDATASIZE 100
+#define MAXDATASIZE 200
 #define BACKLOG 10     // how many pending connections queue will hold
 int active = 1 ;
 char file_part_no[MAXDATASIZE] ;
+char file_name[MAXDATASIZE];
 char*  PORT;
 char file_name[MAXDATASIZE];
 
@@ -34,6 +35,8 @@ void on_new_connection(int indentifier);
 void on_standard_input(char* line);
 int on_new_message (int indentifier);
 void get_file_part_no();
+void get_filename();
+void send_file_info();
 int connect_to_main_server();
 
 int main(int argc, char* argv[])
@@ -44,7 +47,8 @@ int main(int argc, char* argv[])
     int active = 0 ;
     char buf[MAXDATASIZE];
     if(parameter_err(argc)) return 0 ;
-    get_file_part_no();    
+    get_filename();
+    get_file_part_no();
     connect_to_main_server();
     PORT = argv[1] ;
     int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
@@ -55,7 +59,7 @@ int main(int argc, char* argv[])
     int yes=1;
     char s[INET6_ADDRSTRLEN];
     int rv;
-    
+
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -94,7 +98,7 @@ int main(int argc, char* argv[])
 
     if (bind_err(p)) return 1 ;
     if (listen_err(sockfd)) return 1;
- 
+
     sa.sa_handler = sigchld_handler; // reap all dead processes
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
@@ -134,7 +138,7 @@ char *append_str (char *str1 , char *str2){
         return new_str;
 }
    else
-    abort(); 
+    abort();
 }
 
 char* itoa(int i, char b[]){
@@ -200,7 +204,7 @@ void *get_in_addr(struct sockaddr *sa)
 void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
 
     socklen_t sin_size;
-    while(active) {  
+    while(active) {
         sin_size = sizeof their_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
         if (new_fd == -1) {
@@ -209,12 +213,12 @@ void run(int sockfd, int new_fd, struct sockaddr_storage their_addr, char* s){
         }
 
         inet_ntop(their_addr.ss_family,get_in_addr((struct sockaddr *)&their_addr),s, sizeof s);
-        on_new_connection(new_fd);       
+        on_new_connection(new_fd);
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
             if (send(new_fd, "\n#CONNECTION STABLISHED", 22, 0) == -1)
                 write(STDERR_FILENO, "send error", 10);
-       
+
             close(new_fd);
             exit(0);
         }
@@ -285,11 +289,12 @@ void get_file_part_no(){
     write(STDOUT_FILENO, "Enter the part number of the file that this server contains.\n", 61);
     int size = read(STDIN_FILENO, file_part_no, MAXDATASIZE);
     memcpy(file_part_no, file_part_no, size);
+    printf("%s",file_name);
 }
 
 int connect_to_main_server(){
 
-    int sockfd, numbytes, rv;  
+    int sockfd, numbytes, rv;
     char buf[MAXDATASIZE], mains_PORT[MAXDATASIZE], ip_addr[MAXDATASIZE], s[INET6_ADDRSTRLEN];
     char * ptr  , * ptr1 ;
     struct addrinfo hints, *servinfo, *p;
@@ -355,6 +360,14 @@ int connect_to_main_server(){
     return 0;
 }
 
-void get_mainserver_info(){
+void get_filename(){
+
+   write(STDOUT_FILENO, "Enter the file name you have:\n", 31);
+   int size = read(STDIN_FILENO, file_name, MAXDATASIZE);
+   file_name[size-1] = '\0';
+}
+
+void send_file_info(int sockfd){
+
 
 }
