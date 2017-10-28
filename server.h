@@ -12,5 +12,5 @@ void stop ();
 void on_new_connection(int indentifier);
 void on_standard_input(char* line);
 void on_terminated_connection(int sockfd);
-void on_new_message (int indentifier, char[]);
+void on_new_message (int indentifier, char[], int valread);
 void parse (char [], int sockfd);

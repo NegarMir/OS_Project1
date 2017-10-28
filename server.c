@@ -113,7 +113,7 @@ void on_standard_input(char* line)
     stop();
 }
 
-void on_new_message(int sockfd, char buf[]){
+void on_new_message(int sockfd, char buf[], int valread){
 
     int numbytes;
     
@@ -123,7 +123,7 @@ void on_new_message(int sockfd, char buf[]){
     write(STDOUT_FILENO, temp, strlen(temp));
     write(STDOUT_FILENO, id, strlen(id));
     write(STDOUT_FILENO, ": ",2);
-    write(STDOUT_FILENO, buf, strlen(buf));
+    write(STDOUT_FILENO, buf, valread);
     parse(buf, sockfd);
 
 }
@@ -153,7 +153,6 @@ void run(char* PORT){
     int master_socket , addrlen , new_socket , client_socket[30], activity, i , valread , sd;  
     int max_sd;  
     struct sockaddr_in address;  
-    char buffer[1025]; 
          
     fd_set readfds;  
     char *message = "#CONNECTION STABLISHED\n";  
@@ -181,7 +180,6 @@ void run(char* PORT){
     address.sin_family = AF_INET;  
     address.sin_addr.s_addr = INADDR_ANY;  
     int port = atoi(PORT);
-    printf("%d\n",port );
     address.sin_port = htons( port );  
         
     //bind the socket to localhost port 8888 
@@ -205,7 +203,7 @@ void run(char* PORT){
     write(STDOUT_FILENO, "Waiting for connections ...\n", 28);  
         
     while(1)  
-    {  
+    {   
         FD_ZERO(&readfds);   //clear the socket set    
         FD_SET(master_socket, &readfds);  //add master socket to set 
         max_sd = master_socket;  
@@ -261,6 +259,7 @@ void run(char* PORT){
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
+                char buffer[1024];
                 if ((valread = read( sd , buffer, 1024)) == 0)  
                 {  
                     on_terminated_connection(sd);  
@@ -271,7 +270,7 @@ void run(char* PORT){
                 //HANDLE MESSAGE
                 else
                 {  
-                    on_new_message(sd, buffer);
+                    on_new_message(sd, buffer, valread);
                 }  
             }  
         }  
