@@ -14,7 +14,7 @@
 #include <sys/time.h> ////FD_SET, FD_ISSET, FD_ZERO macros 
 #include "server.h"
 
-#define MAXDATASIZE 200
+#define MAXDATASIZE 1024
 #define BACKLOG 10     // how many pending connections queue will hold
 #define MAXNOSERVERS 15
 int active = 1 ;
@@ -146,7 +146,7 @@ void parse(char input[],int sockfd){
      {
         token = strtok(NULL, ",");
         memcpy(file_name, token ,strlen(token));
-        //write()
+        send_sinfo_to_client(sockfd);
         return;
      }
      else if(!strcmp(token,"fileinfo"))
@@ -205,11 +205,47 @@ void inc_num_of_servers()
 	num_of_servers = num_of_servers + 1 ;
 }
 
+void send_sinfo_to_client(int sockfd)
+{
+	write(STDOUT_FILENO,"\nSending info to client\n",23);
+
+	char* delimit = ",";
+	char* temp = "info";
+	int size = 0 ;
+	for(int i = 0 ; i < num_of_servers ; i++)
+	{
+		size = size + 1 +  strlen(servers[i].port) + 1 + strlen(servers[i].part) + 1 + strlen(servers[i].ip_addr);
+
+	}
+	size = size + strlen(temp) + 1;
+	char* msg = (char*)malloc(size);
+	strcpy(msg, temp);
+	for(int i = 0 ; i < num_of_servers ; i++)
+	{
+        strcat(msg,delimit);
+		strcat(msg,servers[i].ip_addr);
+		strcat(msg, delimit);
+		strcat(msg, servers[i].port);
+		strcat(msg, delimit);
+		strcat(msg, servers[i].part);
+		/*write(STDOUT_FILENO,msg,strlen(msg));
+		write(STDOUT_FILENO,"\n",1);
+		send_msg(sockfd, msg);*/
+
+	}
+	write(STDOUT_FILENO,msg,strlen(msg));
+	write(STDOUT_FILENO,"\n",1);
+	send_msg(sockfd,msg);
+	free(msg);
+
+}
+
 void run(char* PORT){
 
     int opt = 1;  
     int master_socket , addrlen , new_socket , client_socket[30], activity, i , valread , sd;  
     int max_sd;  
+    char buf[MAXDATASIZE];
     struct sockaddr_in address;  
          
     fd_set readfds;  
@@ -311,14 +347,15 @@ void run(char* PORT){
         //else its some IO operation on some other socket
         for (i = 0; i < BACKLOG; i++)  
         {  
+        	memset(buf, 0, sizeof(buf));
             sd = client_socket[i];  
                 
             if (FD_ISSET( sd , &readfds))  
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
-                char buffer[1024];
-                if ((valread = read( sd , buffer, 1024)) == 0)  
+                
+                if ((valread = read( sd , buf, 1024)) == 0)  
                 {  
                     on_terminated_connection(sd);  
                     close( sd );  
@@ -328,7 +365,7 @@ void run(char* PORT){
                 //HANDLE MESSAGE
                 else
                 {  
-                    on_new_message(sd, buffer, valread);
+                    on_new_message(sd, buf, valread);
                 }  
             }  
         }  

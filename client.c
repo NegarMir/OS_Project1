@@ -10,8 +10,11 @@
 #include <arpa/inet.h>
 #include "client.h"
 
-#define MAXDATASIZE 200 // max number of bytes we can get at once 
+#define MAXDATASIZE 1024 // max number of bytes we can get at once 
+#define MAXNOSERVERS 15
 char file_name[MAXDATASIZE];
+int num_of_servers = 0 ;
+struct server_info servers[MAXNOSERVERS];
 
 int main(int argc, char *argv[])
 {
@@ -116,7 +119,7 @@ int connect_server(char* ip_addr, char* PORT){
     char* token = "CLIENT : CONNECTING TO ";
     char* new_msg = append_str(token,s);
     write(STDOUT_FILENO, new_msg, strlen(new_msg));
-
+    write(STDOUT_FILENO, "\n", 1);
     freeaddrinfo(servinfo); // all done with this structure
 
     if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
@@ -125,6 +128,7 @@ int connect_server(char* ip_addr, char* PORT){
     }
     write(STDOUT_FILENO, buf, numbytes);
     send_filename(sockfd);
+    recv_serverinfo(sockfd);
     
 
     return 0;
@@ -142,4 +146,65 @@ void send_filename(int sockfd){
     else
         abort();
     send_msg(out, sockfd);
+}
+
+void recv_serverinfo(int sockfd){
+
+  char buf[MAXDATASIZE];
+  int numbytes;
+
+  if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+        write(STDERR_FILENO, "recv", 4);
+        return ;
+    }
+  
+  write(STDOUT_FILENO,buf, strlen(buf));
+  write(STDOUT_FILENO,"\n",1);
+  fill_sinfo(buf);
+
+}
+
+void fill_sinfo(char buffer[])
+{
+    char *token = strtok(buffer,",");
+    if(!strcmp(token,"notfound"))
+    {
+        write(STDOUT_FILENO,"ERR: FILE NOT FOUND ON SERVER.\n",31);
+        exit(EXIT_FAILURE);
+    }
+    else 
+        write(STDOUT_FILENO,"RECEIVING INFORMATION...\n",25);
+    token = strtok(NULL,",");
+    while(token != NULL)
+    {
+        for(int i = 0 ; i < 3 ; i++)
+        {
+            if(i == 0){
+
+                    servers[num_of_servers].ip_addr = malloc(sizeof(char) * strlen (token));
+                    strcpy(servers[num_of_servers].ip_addr, token);
+                    token = strtok(NULL,",");
+                }
+            else if (i == 1){
+
+                servers[num_of_servers].port = malloc(sizeof(char) * strlen (token));
+                strcpy(servers[num_of_servers].port, token);
+                token = strtok(NULL,",");
+
+            }
+            else{
+
+                servers[num_of_servers].part = malloc(sizeof(char) * strlen (token));
+                strcpy(servers[num_of_servers].part, token);
+                token = strtok(NULL,",");
+            }
+
+
+        }
+        num_of_servers = num_of_servers + 1;
+
+    }
+    write(STDOUT_FILENO,"RECEIVED SUCCESSFULLY\n",22);
+
+
 }
