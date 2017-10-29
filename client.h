@@ -18,3 +18,7 @@ int connect_server (char* ip_addr , char* port);
 void send_filename();
 void recv_serverinfo(int sockfd);
 void fill_sinfo(char buf[]);
+void free_info(char** part , char** port , char** ip_addr);
+void download_file();
+void sort_servers();
+void print_arr();

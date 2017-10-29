@@ -161,6 +161,9 @@ void recv_serverinfo(int sockfd){
   write(STDOUT_FILENO,buf, strlen(buf));
   write(STDOUT_FILENO,"\n",1);
   fill_sinfo(buf);
+  sort_servers();
+  //print_arr();
+  download_file();
 
 }
 
@@ -206,5 +209,87 @@ void fill_sinfo(char buffer[])
     }
     write(STDOUT_FILENO,"RECEIVED SUCCESSFULLY\n",22);
 
+
+}
+void sort_servers()
+{
+  int d , c;
+  char* part;
+  char* ip_addr;
+  char* port;
+
+  for (c = 1 ; c <= num_of_servers - 1; c++) {
+    d = c;
+   write(STDOUT_FILENO,"in for\n",7);
+    while ( d > 0 && atoi(servers[d].part) < atoi(servers[d-1].part) ) {
+      write(STDOUT_FILENO,"in while\n",9);
+      part = malloc(sizeof(char) * strlen(servers[d].part));
+      ip_addr = malloc(sizeof(char) * strlen(servers[d].ip_addr));
+      port = malloc(sizeof(char) * strlen(servers[d].port));
+      if(part == NULL || port == NULL || ip_addr == NULL)
+        exit(EXIT_FAILURE);
+      
+      strcpy(part,servers[d].part);
+      strcpy(ip_addr,servers[d].ip_addr);
+      strcpy(port,servers[d].port);
+      write(STDOUT_FILENO,"here\n",5);
+
+      servers[d].part = malloc(sizeof(char)* strlen(servers[d-1].part));
+      servers[d].port = malloc(sizeof(char)* strlen(servers[d-1].port));
+      servers[d].ip_addr = malloc(sizeof(char)* strlen(servers[d-1].ip_addr));
+      
+      if(servers[d].part == NULL || servers[d].port == NULL || servers[d].ip_addr == NULL)
+        exit(EXIT_FAILURE);
+      
+      strcpy(servers[d].part,servers[d-1].part);
+      strcpy(servers[d].port,servers[d-1].port);
+      strcpy(servers[d].ip_addr,servers[d-1].ip_addr);
+
+
+      servers[d-1].port = malloc( sizeof(char) * strlen(port));
+      servers[d-1].ip_addr = malloc( sizeof(char) * strlen(ip_addr));
+      servers[d-1].part = malloc( sizeof(char) * strlen(part));
+
+      strcpy(servers[d-1].part, part);
+      strcpy(servers[d-1].port, port);
+      strcpy(servers[d-1].ip_addr, ip_addr);
+
+      d--;
+    }
+  }
+
+}
+
+void free_info(char** part , char** port , char** ip_addr)
+{
+    if(*part != NULL){
+        free(*part);
+        *part = NULL;
+    }
+    if(*port != NULL){
+        free(*port);
+        *port = NULL;
+    }
+    if(*ip_addr != NULL){
+        free(*ip_addr);
+        *ip_addr = NULL;
+    }
+
+}
+
+void print_arr()
+{
+    for(int i = 0 ; i<num_of_servers ; i++)
+    {
+        write(STDOUT_FILENO,servers[i].ip_addr,strlen(servers[i].ip_addr));
+        write(STDOUT_FILENO,"\n",1);
+        write(STDOUT_FILENO,servers[i].port,strlen(servers[i].port));
+        write(STDOUT_FILENO,"\n",1);
+        write(STDOUT_FILENO,servers[i].part,strlen(servers[i].part));
+        write(STDOUT_FILENO,"\n",1);
+    }
+}
+void download_file(){
+    for(int i = 0 ; i< num_of_servers ; i++)
 
 }
