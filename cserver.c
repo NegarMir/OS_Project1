@@ -351,6 +351,7 @@ int connect_to_main_server(char* PORT){
     char* token = "CLIENT : CONNECTING TO ";
     char* new_msg = append_str(token,s);
     write(STDOUT_FILENO, new_msg, strlen(new_msg));
+    write(STDOUT_FILENO, "\n",1);
 
     freeaddrinfo(servinfo); // all done with this structure
 
@@ -360,6 +361,10 @@ int connect_to_main_server(char* PORT){
     }
     write(STDOUT_FILENO, buf, numbytes);
     send_file_info(sockfd, PORT);
+   /* while(1)
+    {
+
+    }*/
     return 0;
 }
 
@@ -387,6 +392,5 @@ void send_file_info(int sockfd, char* PORT){
       strcat(str3, IP);
       strcat(str3 , str2);
       strcat(str3, PORT);
-
       send_msg(sockfd, str3);
 }

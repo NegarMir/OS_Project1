@@ -16,8 +16,11 @@
 
 #define MAXDATASIZE 200
 #define BACKLOG 10     // how many pending connections queue will hold
+#define MAXNOSERVERS 15
 int active = 1 ;
+int num_of_servers = 0;
 char file_name[MAXDATASIZE];
+struct server_info servers[MAXNOSERVERS];
 
 int main(int argc, char* argv[])
 {
@@ -143,8 +146,63 @@ void parse(char input[],int sockfd){
      {
         token = strtok(NULL, ",");
         memcpy(file_name, token ,strlen(token));
+        //write()
         return;
      }
+     else if(!strcmp(token,"fileinfo"))
+     {
+     	token = strtok(NULL,",");
+     	fill_server_info(token);
+     	return;
+
+     }
+}
+
+void fill_server_info(char* token){
+
+    int i = 0;
+
+	while(token != NULL)
+	{
+		if(i == 0)
+		{
+			servers[num_of_servers].file_name = malloc(sizeof(char ) * strlen(token)) ;
+			strcpy(servers[num_of_servers].file_name, token);
+			//write(STDOUT_FILENO,"\n",1);
+			//write(STDOUT_FILENO,servers[num_of_servers].file_name, strlen(servers[num_of_servers].file_name));
+		}
+		else if (i == 1)
+		{
+			servers[num_of_servers].part = malloc(sizeof(char) * strlen (token));
+			strcpy(servers[num_of_servers].part, token);
+			//write(STDOUT_FILENO,"\n",1);
+			//write(STDOUT_FILENO,servers[num_of_servers].part, strlen(servers[num_of_servers].part));
+		}
+		else if (i == 2)
+		{
+			servers[num_of_servers].ip_addr = malloc(sizeof(char) * strlen (token));
+			strcpy(servers[num_of_servers].ip_addr, token);
+			//write(STDOUT_FILENO,"\n",1);
+			//write(STDOUT_FILENO,servers[num_of_servers].ip_addr, strlen(servers[num_of_servers].ip_addr));
+		}
+		else
+		{
+			servers[num_of_servers].port = malloc(sizeof(char) * strlen (token));
+			strcpy(servers[num_of_servers].port, token);
+			//write(STDOUT_FILENO,"\n",1);
+			//write(STDOUT_FILENO,servers[num_of_servers].port, strlen(servers[num_of_servers].port));
+
+		}
+		token = strtok(NULL, ",");
+		i = i + 1 ;
+
+	}
+	inc_num_of_servers();
+}
+
+void inc_num_of_servers()
+{
+	num_of_servers = num_of_servers + 1 ;
 }
 
 void run(char* PORT){
@@ -278,3 +336,4 @@ void run(char* PORT){
         
      
 } 
+

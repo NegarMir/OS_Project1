@@ -1,2 +1,4 @@
 *.out
-
+*.o
+*.md
+cserver.out.dSYM/
