@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     get_filename();
     get_file_part_no();
     connect_to_main_server(argv[1]);
-    run(argv[1]);
+    run(argv[2], argv[1]);
     return 0;
 }
 
@@ -100,7 +100,7 @@ void *get_in_addr(struct sockaddr *sa)
     return 0 ;
  }
 
-void run(char* PORT){
+void run(char* PORT, char* ip_addr){
 int opt = 1;  
     int master_socket , addrlen , new_socket , client_socket[30], activity, i , valread , sd;  
     int max_sd;  
@@ -131,7 +131,7 @@ int opt = 1;
     }  
     
     address.sin_family = AF_INET;  
-    address.sin_addr.s_addr = INADDR_ANY;  
+    address.sin_addr.s_addr = inet_addr(ip_addr);  
     int port = atoi(PORT);
     address.sin_port = htons( port );  
         
@@ -306,7 +306,7 @@ void parse(int sockfd, char input[MAXDATASIZE]){
     memset(buff, 0, sizeof(buff));
     if(!strcmp(input,"download"))
     {
-        write(STDOUT_FILENO,file_name,sizeof(file_name));
+       
         int retval = open(file_name, O_RDONLY, O_NONBLOCK);
 
         if(retval < 0)
@@ -330,11 +330,14 @@ int connect_to_main_server(char* PORT){
     char buf[MAXDATASIZE], mains_PORT[MAXDATASIZE], ip_addr[MAXDATASIZE], s[INET6_ADDRSTRLEN];
     char * ptr  , * ptr1 ;
     struct addrinfo hints, *servinfo, *p;
+
     write(STDOUT_FILENO, "Enter main server's ip address.\n", 32);
+
     int size = read(STDIN_FILENO, ip_addr, MAXDATASIZE);
     ip_addr[size - 1] = '\0';
     ptr = malloc((size-1)*sizeof(char));
     ptr = &ip_addr[0];
+
     write(STDOUT_FILENO, "Enter main server's port number.\n", 33);
     size = read(STDIN_FILENO, mains_PORT, MAXDATASIZE);
     memcpy(mains_PORT, mains_PORT, size);
@@ -378,6 +381,7 @@ int connect_to_main_server(char* PORT){
     }
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),s, sizeof s);
+
     char* token = "CLIENT : CONNECTING TO ";
     char* new_msg = append_str(token,s);
     write(STDOUT_FILENO, new_msg, strlen(new_msg));
@@ -391,10 +395,7 @@ int connect_to_main_server(char* PORT){
     }
     write(STDOUT_FILENO, buf, numbytes);
     send_file_info(sockfd, PORT);
-   /* while(1)
-    {
 
-    }*/
     return 0;
 }
 

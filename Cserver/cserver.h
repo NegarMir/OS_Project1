@@ -4,7 +4,7 @@
 char *append_str (char *str1 , char *str2);
 char* itoa (int i, char b[]);
 int parameter_err(int);
-void run (char* PORT);
+void run (char* PORT, char* ip_addr);
 void send_msg (int indentifier, char* msg);
 char recv_msg(int indentifier);
 void stop ();

@@ -144,6 +144,7 @@ int connect_server(char* ip_addr, char* PORT, int mode){
     else
     {
         download_part(sockfd);
+        write(STDOUT_FILENO, "Download Finished\n",18);
 
     }
 

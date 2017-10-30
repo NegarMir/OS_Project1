@@ -30,8 +30,9 @@ int main(int argc, char* argv[])
     int active = 0 ;
     char buf[MAXDATASIZE];
     if(parameter_err(argc)) return 0 ;
-    char*  PORT = argv[1] ;
-    run(PORT);
+    char*  PORT = argv[2] ;
+    char* ip_addr = argv[1];
+    run(PORT, ip_addr);
 
     return 0;
 }
@@ -70,7 +71,7 @@ char* itoa(int i, char b[]){
 
  int parameter_err(int argc){
 
-    if(argc==1){
+    if(argc == 2 || argc == 1){
         const char msg[] = "\n valid operation server [port number]\n";
         write(STDOUT_FILENO, msg, strlen(msg));
         return 1;
@@ -168,29 +169,24 @@ void fill_server_info(char* token){
 		{
 			servers[num_of_servers].file_name = malloc(sizeof(char ) * strlen(token)) ;
 			strcpy(servers[num_of_servers].file_name, token);
-			//write(STDOUT_FILENO,"\n",1);
-			//write(STDOUT_FILENO,servers[num_of_servers].file_name, strlen(servers[num_of_servers].file_name));
+		
 		}
 		else if (i == 1)
 		{
 			servers[num_of_servers].part = malloc(sizeof(char) * strlen (token));
 			strcpy(servers[num_of_servers].part, token);
-			//write(STDOUT_FILENO,"\n",1);
-			//write(STDOUT_FILENO,servers[num_of_servers].part, strlen(servers[num_of_servers].part));
+		
 		}
 		else if (i == 2)
 		{
 			servers[num_of_servers].ip_addr = malloc(sizeof(char) * strlen (token));
 			strcpy(servers[num_of_servers].ip_addr, token);
-			//write(STDOUT_FILENO,"\n",1);
-			//write(STDOUT_FILENO,servers[num_of_servers].ip_addr, strlen(servers[num_of_servers].ip_addr));
+
 		}
 		else
 		{
 			servers[num_of_servers].port = malloc(sizeof(char) * strlen (token));
 			strcpy(servers[num_of_servers].port, token);
-			//write(STDOUT_FILENO,"\n",1);
-			//write(STDOUT_FILENO,servers[num_of_servers].port, strlen(servers[num_of_servers].port));
 
 		}
 		token = strtok(NULL, ",");
@@ -220,6 +216,7 @@ void send_sinfo_to_client(int sockfd)
 	size = size + strlen(temp) + 1;
 	char* msg = (char*)malloc(size);
 	strcpy(msg, temp);
+
 	for(int i = 0 ; i < num_of_servers ; i++)
 	{
         strcat(msg,delimit);
@@ -228,19 +225,17 @@ void send_sinfo_to_client(int sockfd)
 		strcat(msg, servers[i].port);
 		strcat(msg, delimit);
 		strcat(msg, servers[i].part);
-		/*write(STDOUT_FILENO,msg,strlen(msg));
-		write(STDOUT_FILENO,"\n",1);
-		send_msg(sockfd, msg);*/
 
 	}
-	write(STDOUT_FILENO,msg,strlen(msg));
-	write(STDOUT_FILENO,"\n",1);
+
+	//write(STDOUT_FILENO,msg,strlen(msg));
+	//write(STDOUT_FILENO,"\n",1);
 	send_msg(sockfd,msg);
 	free(msg);
 
 }
 
-void run(char* PORT){
+void run(char* PORT, char* ip_addr){
 
     int opt = 1;  
     int master_socket , addrlen , new_socket , client_socket[30], activity, i , valread , sd;  
@@ -272,7 +267,7 @@ void run(char* PORT){
     }  
     
     address.sin_family = AF_INET;  
-    address.sin_addr.s_addr = INADDR_ANY;  
+    address.sin_addr.s_addr = inet_addr(ip_addr);  
     int port = atoi(PORT);
     address.sin_port = htons( port );  
         
@@ -294,10 +289,25 @@ void run(char* PORT){
         
     //accept the incoming connection 
     addrlen = sizeof(address);  
-    write(STDOUT_FILENO, "Waiting for connections ...\n", 28);  
-        
+    write(STDOUT_FILENO, "Waiting for connections ...\n", 29);  
+
     while(1)  
     {   
+        /*char input[MAXDATASIZE];
+        char* q = ":q";
+        memset(input, 0, MAXDATASIZE);
+
+        int input_size = read(STDIN_FILENO, input, MAXDATASIZE);
+        input[input_size - 1] = '\0';
+        
+        write(STDOUT_FILENO, input,sizeof(input));
+        if(input_size > 0)
+        {
+            if(!strcmp(input, ":q"))
+                return;
+        }*/
+        
+
         FD_ZERO(&readfds);   //clear the socket set    
         FD_SET(master_socket, &readfds);  //add master socket to set 
         max_sd = master_socket;  
