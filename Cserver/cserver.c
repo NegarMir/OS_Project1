@@ -11,9 +11,10 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <math.h>
+#include <fcntl.h>
 #include "cserver.h"
 
-#define MAXDATASIZE 200
+#define MAXDATASIZE 100000
 #define BACKLOG 10     // how many pending connections queue will hold
 
 int active = 1 ;
@@ -204,7 +205,8 @@ int opt = 1;
             
         //else its some IO operation on some other socket
         for (i = 0; i < BACKLOG; i++)  
-        {  
+        {   
+            memset(buffer, 0, sizeof(buffer));
             sd = client_socket[i];  
                 
             if (FD_ISSET( sd , &readfds))  
@@ -221,7 +223,7 @@ int opt = 1;
                 //HANDLE MESSAGE
                 else
                 {  
-                    on_new_message(sd, buffer);
+                    on_new_message(sd, buffer, valread);
                 }  
             }  
         }  
@@ -267,14 +269,18 @@ void on_standard_input(char* line)
     stop();
 }
 
-void on_new_message(int sockfd,char buf[]){
-    int numbytes;
-    memcpy(file_name, buf, numbytes);
+void on_new_message(int sockfd,char buf[], int valread){
+   
     char* temp = "\nNEW MESSAGE FROM";
     char id[5] = {0x0} ;
     sprintf(id,"%4d", sockfd);
+
     write(STDOUT_FILENO, temp, strlen(temp));
     write(STDOUT_FILENO, id, strlen(id));
+    write(STDOUT_FILENO, " : ",3);
+    write(STDOUT_FILENO, buf, valread);
+    write(STDOUT_FILENO, "\n",1);
+    parse(sockfd, buf);
 
 }
 
@@ -292,6 +298,30 @@ void get_file_part_no(){
     int size = read(STDIN_FILENO, file_part_no, MAXDATASIZE);
     memcpy(file_part_no, file_part_no, size);
     file_part_no[size-1] = '\0';
+}
+
+void parse(int sockfd, char input[MAXDATASIZE]){
+
+    char buff[MAXDATASIZE];
+    memset(buff, 0, sizeof(buff));
+    if(!strcmp(input,"download"))
+    {
+        write(STDOUT_FILENO,file_name,sizeof(file_name));
+        int retval = open(file_name, O_RDONLY, O_NONBLOCK);
+
+        if(retval < 0)
+        {
+            write(STDERR_FILENO,"ERR : FILE NOT FOUND.\n",22);
+            exit(EXIT_FAILURE);
+        }
+
+        char* msg;
+        int numbytes = read (retval,buff,sizeof(buff)-1);
+        msg = malloc(sizeof(char) * numbytes);
+        strcpy(msg,buff);
+        send_msg(sockfd, buff);
+    }
+  
 }
 
 int connect_to_main_server(char* PORT){

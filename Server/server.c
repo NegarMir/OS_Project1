@@ -14,7 +14,7 @@
 #include <sys/time.h> ////FD_SET, FD_ISSET, FD_ZERO macros 
 #include "server.h"
 
-#define MAXDATASIZE 1024
+#define MAXDATASIZE 100000
 #define BACKLOG 10     // how many pending connections queue will hold
 #define MAXNOSERVERS 15
 int active = 1 ;
@@ -279,7 +279,7 @@ void run(char* PORT){
     //bind the socket to localhost port 8888 
     if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)  
     {  
-        write(STDERR_FILENO,"bind failed",11);  
+        write(STDERR_FILENO,"bind failed\n",12);  
         exit(EXIT_FAILURE);  
     }  
     write(STDOUT_FILENO,"Listener on port ",17);  

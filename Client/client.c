@@ -8,9 +8,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include "client.h"
 
-#define MAXDATASIZE 1024 // max number of bytes we can get at once 
+#define MAXDATASIZE 100000 // max number of bytes we can get at once
 #define MAXNOSERVERS 15
 char file_name[MAXDATASIZE];
 int num_of_servers = 0 ;
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
 {
    if(port_ip_err(argc))
         return 1;
-   int res = connect_server(argv[1], argv[2]);
+   int res = connect_server(argv[1], argv[2], 0);
    if(res == 2)
        return 2;
     else if (res == 1)
@@ -74,9 +75,9 @@ void close_sock(int sockfd){
     close(sockfd);
 }
 
-int connect_server(char* ip_addr, char* PORT){
+int connect_server(char* ip_addr, char* PORT, int mode){
 
-    int sockfd, numbytes;  
+    int sockfd, numbytes;
     char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -119,6 +120,12 @@ int connect_server(char* ip_addr, char* PORT){
     char* token = "CLIENT : CONNECTING TO ";
     char* new_msg = append_str(token,s);
     write(STDOUT_FILENO, new_msg, strlen(new_msg));
+    if(mode == 0)
+      write(STDERR_FILENO, " in mode 0\n",11);
+    else 
+      write(STDERR_FILENO, " in mode 1\n",11);
+
+
     write(STDOUT_FILENO, "\n", 1);
     freeaddrinfo(servinfo); // all done with this structure
 
@@ -127,14 +134,24 @@ int connect_server(char* ip_addr, char* PORT){
         return 1;
     }
     write(STDOUT_FILENO, buf, numbytes);
-    send_filename(sockfd);
-    recv_serverinfo(sockfd);
-    
+
+    if(!mode)
+    {
+        send_filename(sockfd);
+        recv_serverinfo(sockfd);
+
+    }
+    else
+    {
+        download_part(sockfd);
+
+    }
+
 
     return 0;
 }
 void send_filename(int sockfd){
- 
+
   write(STDOUT_FILENO, "\nEnter the file name you wanna download :\n", 43);
   int size = read(STDIN_FILENO, file_name, MAXDATASIZE);
    file_name[size-1] = '\0';
@@ -157,13 +174,13 @@ void recv_serverinfo(int sockfd){
         write(STDERR_FILENO, "recv", 4);
         return ;
     }
-  
+
   write(STDOUT_FILENO,buf, strlen(buf));
   write(STDOUT_FILENO,"\n",1);
   fill_sinfo(buf);
   sort_servers();
   //print_arr();
-  download_file();
+  get_file();
 
 }
 
@@ -175,7 +192,7 @@ void fill_sinfo(char buffer[])
         write(STDOUT_FILENO,"ERR: FILE NOT FOUND ON SERVER.\n",31);
         exit(EXIT_FAILURE);
     }
-    else 
+    else
         write(STDOUT_FILENO,"RECEIVING INFORMATION...\n",25);
     token = strtok(NULL,",");
     while(token != NULL)
@@ -220,27 +237,27 @@ void sort_servers()
 
   for (c = 1 ; c <= num_of_servers - 1; c++) {
     d = c;
-   write(STDOUT_FILENO,"in for\n",7);
+
     while ( d > 0 && atoi(servers[d].part) < atoi(servers[d-1].part) ) {
-      write(STDOUT_FILENO,"in while\n",9);
+
       part = malloc(sizeof(char) * strlen(servers[d].part));
       ip_addr = malloc(sizeof(char) * strlen(servers[d].ip_addr));
       port = malloc(sizeof(char) * strlen(servers[d].port));
       if(part == NULL || port == NULL || ip_addr == NULL)
         exit(EXIT_FAILURE);
-      
+
       strcpy(part,servers[d].part);
       strcpy(ip_addr,servers[d].ip_addr);
       strcpy(port,servers[d].port);
-      write(STDOUT_FILENO,"here\n",5);
+
 
       servers[d].part = malloc(sizeof(char)* strlen(servers[d-1].part));
       servers[d].port = malloc(sizeof(char)* strlen(servers[d-1].port));
       servers[d].ip_addr = malloc(sizeof(char)* strlen(servers[d-1].ip_addr));
-      
+
       if(servers[d].part == NULL || servers[d].port == NULL || servers[d].ip_addr == NULL)
         exit(EXIT_FAILURE);
-      
+
       strcpy(servers[d].part,servers[d-1].part);
       strcpy(servers[d].port,servers[d-1].port);
       strcpy(servers[d].ip_addr,servers[d-1].ip_addr);
@@ -289,7 +306,42 @@ void print_arr()
         write(STDOUT_FILENO,"\n",1);
     }
 }
-void download_file(){
+
+void get_file(){
     for(int i = 0 ; i< num_of_servers ; i++)
+    {
+        connect_server(servers[i].ip_addr,servers[i].port, 1);
+    }
+
+}
+
+void download_part(int sockfd){
+
+    write(STDOUT_FILENO,"Downloading parts...\n",21);
+    char* msg = "download";
+    send_msg(msg, sockfd);
+    char buff[MAXDATASIZE];
+    int numbytes, file_ds;
+
+    
+    if ((file_ds = open(file_name, O_RDWR | O_APPEND | O_CREAT | O_NONBLOCK, 0666)) == -1){
+      write(STDERR_FILENO,"ERR: FILE COULD NOT OPEN.\n", 41);
+      exit(EXIT_FAILURE);
+
+    }
+    write(STDOUT_FILENO,file_name,sizeof(file_name));
+
+    if ((numbytes = recv(sockfd, buff, MAXDATASIZE-1, 0)) == -1) {
+        write(STDERR_FILENO, "recv\n", 5);
+        exit(EXIT_FAILURE);
+    }
+
+    else{
+      
+      write(file_ds, buff, numbytes);
+
+    }
+
+      close(file_ds);
 
 }

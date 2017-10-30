@@ -2,3 +2,5 @@
 *.o
 *.md
 cserver.out.dSYM/
+*.txt
+*.zip
