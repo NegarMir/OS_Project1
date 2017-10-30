@@ -1,17 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <math.h>
-#include <sys/time.h> ////FD_SET, FD_ISSET, FD_ZERO macros 
 #include "server.h"
 
 #define MAXDATASIZE 100000
@@ -207,8 +193,8 @@ void send_sinfo_to_client(int sockfd)
 
 	char* delimit = ",";
 	char* temp = "info";
-	int size = 0 ;
-	for(int i = 0 ; i < num_of_servers ; i++)
+	int size = 0 , i = 0 ;
+	for(i = 0 ; i < num_of_servers ; i++)
 	{
 		size = size + 1 +  strlen(servers[i].port) + 1 + strlen(servers[i].part) + 1 + strlen(servers[i].ip_addr);
 
@@ -217,7 +203,7 @@ void send_sinfo_to_client(int sockfd)
 	char* msg = (char*)malloc(size);
 	strcpy(msg, temp);
 
-	for(int i = 0 ; i < num_of_servers ; i++)
+	for(i = 0 ; i < num_of_servers ; i++)
 	{
         strcat(msg,delimit);
 		strcat(msg,servers[i].ip_addr);
@@ -328,7 +314,20 @@ void run(char* PORT, char* ip_addr){
         if ((activity < 0) && (errno!=EINTR))  
         {
             write(STDERR_FILENO,"select error", 12);  
-        }  
+        } 
+
+       if (FD_ISSET(STDIN_FILENO, &readfds))
+       {
+         write(0,"here",4 );
+          char input[MAXDATASIZE];
+          memset(input, 0, MAXDATASIZE);
+
+          int input_size = read(STDIN_FILENO, input, MAXDATASIZE);
+          input[input_size - 1] = '\0';
+
+          if(input_size > 0)
+            on_standard_input(input);
+       } 
             
         if (FD_ISSET(master_socket, &readfds)) //If something happened on the master socket,then its an incoming connection 
         {  

@@ -1,14 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
 #include "client.h"
 
 #define MAXDATASIZE 100000 // max number of bytes we can get at once
@@ -198,7 +187,8 @@ void fill_sinfo(char buffer[])
     token = strtok(NULL,",");
     while(token != NULL)
     {
-        for(int i = 0 ; i < 3 ; i++)
+        int i = 0 ;
+        for(i = 0 ; i < 3 ; i++)
         {
             if(i == 0){
 
@@ -297,7 +287,8 @@ void free_info(char** part , char** port , char** ip_addr)
 
 void print_arr()
 {
-    for(int i = 0 ; i<num_of_servers ; i++)
+    int i = 0;
+    for(i = 0 ; i<num_of_servers ; i++)
     {
         write(STDOUT_FILENO,servers[i].ip_addr,strlen(servers[i].ip_addr));
         write(STDOUT_FILENO,"\n",1);
@@ -309,7 +300,9 @@ void print_arr()
 }
 
 void get_file(){
-    for(int i = 0 ; i< num_of_servers ; i++)
+
+    int i = 0;
+    for(i = 0 ; i< num_of_servers ; i++)
     {
         connect_server(servers[i].ip_addr,servers[i].port, 1);
     }
@@ -330,8 +323,7 @@ void download_part(int sockfd){
       exit(EXIT_FAILURE);
 
     }
-    write(STDOUT_FILENO,file_name,sizeof(file_name));
-
+   
     if ((numbytes = recv(sockfd, buff, MAXDATASIZE-1, 0)) == -1) {
         write(STDERR_FILENO, "recv\n", 5);
         exit(EXIT_FAILURE);

@@ -1,5 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <math.h>
+#include <fcntl.h>
 
 char *append_str (char *str1 , char *str2);
 char* itoa (int i, char b[]);
@@ -15,5 +27,5 @@ void on_terminated_connection(int sockfd);
 void parse(int sockfd, char[]);
 void get_file_part_no();
 void get_filename();
-void send_file_info(int sockfd, char* PORT);
-int connect_to_main_server(char*);
+void send_file_info(int sockfd, char* PORT, char* ip_addr);
+int connect_to_main_server(char* PORT, char* ip_addr);

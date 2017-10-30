@@ -1,5 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <math.h>
+#include <sys/time.h> ////FD_SET, FD_ISSET, FD_ZERO macros 
 
 struct server_info{
 	char* ip_addr;

@@ -1,17 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <math.h>
-#include <fcntl.h>
 #include "cserver.h"
 
 #define MAXDATASIZE 100000
@@ -31,7 +17,7 @@ int main(int argc, char* argv[])
     if(parameter_err(argc)) return 0 ;
     get_filename();
     get_file_part_no();
-    connect_to_main_server(argv[1]);
+    connect_to_main_server(argv[2], argv[1]);
     run(argv[2], argv[1]);
     return 0;
 }
@@ -324,7 +310,7 @@ void parse(int sockfd, char input[MAXDATASIZE]){
   
 }
 
-int connect_to_main_server(char* PORT){
+int connect_to_main_server(char* PORT, char* IP){
 
     int sockfd, numbytes, rv;
     char buf[MAXDATASIZE], mains_PORT[MAXDATASIZE], ip_addr[MAXDATASIZE], s[INET6_ADDRSTRLEN];
@@ -394,7 +380,7 @@ int connect_to_main_server(char* PORT){
         return 1;
     }
     write(STDOUT_FILENO, buf, numbytes);
-    send_file_info(sockfd, PORT);
+    send_file_info(sockfd, PORT, IP);
 
     return 0;
 }
@@ -406,11 +392,11 @@ void get_filename(){
    file_name[size-1] = '\0';
 }
 
-void send_file_info(int sockfd, char* PORT){
+void send_file_info(int sockfd, char* PORT, char* IP){
 
       char* str1 = "fileinfo,";
       char* str2 = ",";
-      char* IP = "127.0.0.1";
+      //char* IP = "127.0.0.1";
 
       char* str3 = (char*) malloc(1 + strlen(str1)+ 
                     strlen(file_name) + 1 + strlen(file_part_no) + 1 + strlen(IP) + 1 + strlen(PORT));
